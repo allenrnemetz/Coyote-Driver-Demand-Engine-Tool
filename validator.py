@@ -491,8 +491,11 @@ def compare_tables(
     """Check 8: cross-table comparison (Normal vs Sport vs Fault).
 
     Expected relationships:
-      - Sport >= Normal at high pedal
-      - Fault <= Normal everywhere
+      - Sport is a more aggressive pedal map (more torque at less pedal),
+        but at WOT it should match Normal since both are capped by the
+        same engine max. So Sport >= Normal at low/mid pedal, and
+        Sport ~= Normal at WOT (within margin).
+      - Fault <= Normal everywhere.
     """
     result = ValidationResult(table_name="cross-table")
     normal = tables.get("Normal")
@@ -508,19 +511,44 @@ def compare_tables(
         return result
 
     if sport is not None and _shapes_match(normal, sport):
+        wot_row = normal.n_rows - 1
+        mid_row = normal.n_rows // 2
         for i in range(normal.n_rows):
             for j in range(normal.n_cols):
-                # Sport should be >= Normal at high pedal
-                if normal.row_axis[i] > normal.row_axis[normal.n_rows // 2]:
+                if i >= wot_row:
+                    # At WOT, Sport should match Normal (both capped at
+                    # engine max). Flag if Sport exceeds Normal by more
+                    # than the margin (impossible request) or is
+                    # significantly lower (wasted potential).
+                    delta = sport.values[i, j] - normal.values[i, j]
+                    if abs(delta) > cfg.max_torque_margin:
+                        result.add(ValidationIssue(
+                            check="cross_table",
+                            severity=Severity.WARNING,
+                            message=(
+                                f"Sport differs from Normal at WOT "
+                                f"(pedal {normal.row_axis[i]:.0f}), "
+                                f"{normal.col_axis[j]:.0f} RPM: "
+                                f"{sport.values[i, j]:.1f} vs "
+                                f"{normal.values[i, j]:.1f} "
+                                f"(should match -- both capped at engine max)"
+                            ),
+                            row_idx=i, col_idx=j,
+                        ))
+                elif i < mid_row:
+                    # At low/mid pedal, Sport should be >= Normal
+                    # (more aggressive pedal map).
                     if sport.values[i, j] < normal.values[i, j] - cfg.monotonicity_tolerance:
                         result.add(ValidationIssue(
                             check="cross_table",
                             severity=Severity.WARNING,
                             message=(
-                                f"Sport table is LOWER than Normal at high pedal "
-                                f"({normal.row_axis[i]:.0f}), "
+                                f"Sport table is LOWER than Normal at "
+                                f"low/mid pedal ({normal.row_axis[i]:.0f}), "
                                 f"{normal.col_axis[j]:.0f} RPM: "
-                                f"{sport.values[i, j]:.1f} < {normal.values[i, j]:.1f}"
+                                f"{sport.values[i, j]:.1f} < "
+                                f"{normal.values[i, j]:.1f} "
+                                f"(Sport should be more aggressive)"
                             ),
                             row_idx=i, col_idx=j,
                         ))

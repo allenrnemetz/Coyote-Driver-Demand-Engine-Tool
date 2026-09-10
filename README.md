@@ -54,7 +54,7 @@ cleanly**. The tool catches problems introduced by modifications.
     neutral (1.0)
   - **OSS effective demand** (WARNING) -- checks that base demand x OSS
     modifier does not exceed indicated max, and flags large deltas
-  - **Cross-table comparison** (WARNING) -- Sport >= Normal, Fault <= Normal
+  - **Cross-table comparison** (WARNING) -- Sport more aggressive at low/mid pedal but matches Normal at WOT, Fault <= Normal
 - Color-coded issue highlighting on the table grid
 - Plots: 3D surface, demand vs indicated max, gradient heatmap
 - Export to CSV
@@ -117,7 +117,7 @@ N m    600  1150 1500 1950 2500 3200 3900 4600 5300 6850 rpm
 Use the **Demand Table** dropdown to switch between:
 
 - **Normal** -- primary driving mode
-- **Sport** -- performance mode (should be >= Normal at high pedal)
+- **Sport** -- more aggressive pedal map (more torque at less pedal, but WOT matches Normal since both are capped at engine max)
 - **Fault** -- limp mode (should be <= Normal everywhere)
 - **OSS** -- output shaft speed modifier (multipliers, not torque)
 
