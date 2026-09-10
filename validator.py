@@ -362,8 +362,8 @@ def check_oss_modifier(
                     severity=Severity.WARNING,
                     message=(
                         f"OSS multiplier {mult:.3f} deviates {deviation:+.0%} "
-                        f"from neutral at pedal {oss_table.row_axis[i]:.0f}, "
-                        f"{oss_table.col_axis[j]:.0f} OSS RPM"
+                        f"from neutral at {oss_table.row_axis[i]:.0f} OSS RPM, "
+                        f"pedal {oss_table.col_axis[j]:.0f}"
                     ),
                     row_idx=i, col_idx=j,
                     value=mult, limit=1.0,
@@ -394,10 +394,11 @@ def apply_oss_modifier(
     for i, pedal in enumerate(base_demand.row_axis):
         for j, rpm in enumerate(base_demand.col_axis):
             # Interpolate OSS multiplier at (pedal, rpm).
-            # Clamp rpm to OSS axis range (no extrapolation).
-            oss_rpm = float(np.clip(rpm, oss_table.col_axis[0], oss_table.col_axis[-1]))
-            oss_pedal = float(np.clip(pedal, oss_table.row_axis[0], oss_table.row_axis[-1]))
-            mult = float(oss_table.interp(oss_pedal, oss_rpm))
+            # OSS table orientation matches XDF: row_axis = OSS RPM,
+            # col_axis = pedal. Clamp both to axis range (no extrapolation).
+            oss_rpm = float(np.clip(rpm, oss_table.row_axis[0], oss_table.row_axis[-1]))
+            oss_pedal = float(np.clip(pedal, oss_table.col_axis[0], oss_table.col_axis[-1]))
+            mult = float(oss_table.interp(oss_rpm, oss_pedal))
             effective.values[i, j] = base_demand.values[i, j] * mult
     return effective
 
